@@ -5,30 +5,43 @@ import (
 	"database/sql"
 	"fmt"
 
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 type Artista struct {
 	gorm.Model
-	nome          string
+	nome          string `gorm:"unique"`
 	nacionalidade sql.NullString
+	musicas       []Musica
 }
 
 type Usuario struct {
 	gorm.Model
-	username string
-	email    string
+	username  string
+	email     string
+	playlists []Playlist
 }
 
 type Playlist struct {
-	playlist_id uint `gorm:"primaryKey"`
-	usuario_id  uint `gorm:"primaryKey"`
+	gorm.Model
+	usuario_id   uint `gorm:"primaryKey;autoIncrement:false"`
+	nome         string
+	data_criacao sql.NullTime
+}
+
+type Musica struct {
+	gorm.Model
+	titulo           string
+	duracao_segundos uint
+	artista_id       uint
+	Playlists        []Playlist `gorm:"many2many:musica_playlists"`
 }
 
 func main() {
 
-	db, err := gorm.Open(sqlite.Open("database.db"), &gorm.Config{})
+	dsn := "host=localhost user=admin password=admin123 dbname=LBDGORM port=5432 sslmode=disable TimeZone=America/Sao_Paulo"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
