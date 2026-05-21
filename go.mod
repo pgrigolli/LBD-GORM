@@ -1,4 +1,4 @@
-module example/main
+module LBD
 
 go 1.25.0
 
