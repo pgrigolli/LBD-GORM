@@ -4,6 +4,7 @@ import (
 	"LBD/database"
 	"LBD/schemas"
 	"context"
+	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -35,4 +36,48 @@ func GetAllArtista() ([]schemas.Artista, error) {
 
 	return artistas, err
 
+}
+
+func UpdateArtista(artista schemas.Artista) (schemas.Artista, error) {
+	db, err := database.ConnectDB()
+
+	if err != nil {
+		return schemas.Artista{}, err
+	}
+
+	ctx := context.Background()
+	rows, err := gorm.G[schemas.Artista](db).Where("id = ?", artista.ID).Updates(ctx, artista)
+
+	if err != nil {
+		return schemas.Artista{}, err
+	}
+
+	if rows == 0 {
+		return schemas.Artista{}, fmt.Errorf("artista com id %d nao encontrado", artista.ID)
+	}
+
+	return artista, nil
+
+}
+
+func DeleteArtista(artistaID uint) error {
+
+	db, err := database.ConnectDB()
+
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+
+	rows, err := gorm.G[schemas.Artista](db).Where("id = ?", artistaID).Delete(ctx)
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return fmt.Errorf("artista com id %d nao encontrado", artistaID)
+	}
+
+	return nil
 }

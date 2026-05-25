@@ -42,6 +42,33 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Println(artistas[1])
+		for index, element := range artistas {
+
+			fmt.Println("Artista %d", index)
+			fmt.Println(element)
+			fmt.Println("")
+		}
 	}
+
+	// //Exemplo de UpdateArtista
+	// artistaUpdate := schemas.Artista{
+	// 	Model: gorm.Model{ID: 1}, // ajuste o ID conforme necessário
+	// 	Nome:  "Laufey Updated",
+	// }
+
+	// _, err = services.UpdateArtista(artistaUpdate)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// } else {
+	// 	fmt.Println("Artista atualizado com sucesso")
+	// }
+
+	// //Exemplo de DeleteArtista
+	// err = services.DeleteArtista(1) // ajuste o ID conforme necessário
+	// if err != nil {
+	// 	fmt.Println(err)
+	// } else {
+	// 	fmt.Println("Artista deletado com sucesso")
+	// }
+
 }
