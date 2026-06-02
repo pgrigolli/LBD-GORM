@@ -2,7 +2,6 @@ package seed
 
 import (
 	"database/sql"
-	"time"
 
 	"LBD/schemas"
 
@@ -96,49 +95,38 @@ func Seed(db *gorm.DB) {
 
 	db.Create(&musicas)
 
-	now := time.Now()
-
 	playlists := []schemas.Playlist{
 		{
-			Usuario_id: usuarios[0].ID,
-			Nome:       "Rock do Pablo",
-			Data_criacao: sql.NullTime{
-				Time:  now,
-				Valid: true,
-			},
+			UsuarioId: usuarios[0].ID,
+			Nome:      "Rock do Pablo",
 		},
 		{
-			Usuario_id: usuarios[1].ID,
-			Nome:       "Baladas do Josue",
-			Data_criacao: sql.NullTime{
-				Time:  now,
-				Valid: true,
-			},
+			UsuarioId: usuarios[1].ID,
+			Nome:      "Baladas do Josue",
 		},
 		{
-			Usuario_id: usuarios[0].ID,
-			Nome:       "Heavy Riffs",
-			Data_criacao: sql.NullTime{
-				Time:  now,
-				Valid: true,
-			},
+			UsuarioId: usuarios[0].ID,
+			Nome:      "Heavy Riffs",
 		},
 	}
 
 	db.Create(&playlists)
 
-	db.Model(&playlists[0]).Association("Musicas").Append(
-		&musicas[0],
-		&musicas[2],
-		&musicas[3],
-	)
+	// Playlist "Rock do Pablo": Bohemian Rhapsody, Back In Black, We Will Rock You
+	db.Create(&[]schemas.MusicaPlaylist{
+		{MusicaId: musicas[0].ID, PlaylistId: playlists[0].PlaylistId, UsuarioId: playlists[0].UsuarioId, OrdemNaPlaylist: 1},
+		{MusicaId: musicas[2].ID, PlaylistId: playlists[0].PlaylistId, UsuarioId: playlists[0].UsuarioId, OrdemNaPlaylist: 2},
+		{MusicaId: musicas[3].ID, PlaylistId: playlists[0].PlaylistId, UsuarioId: playlists[0].UsuarioId, OrdemNaPlaylist: 3},
+	})
 
-	db.Model(&playlists[1]).Association("Musicas").Append(
-		&musicas[1],
-	)
+	// Playlist "Baladas do Josue": Stairway to Heaven
+	db.Create(&[]schemas.MusicaPlaylist{
+		{MusicaId: musicas[1].ID, PlaylistId: playlists[1].PlaylistId, UsuarioId: playlists[1].UsuarioId, OrdemNaPlaylist: 1},
+	})
 
-	db.Model(&playlists[2]).Association("Musicas").Append(
-		&musicas[2],
-		&musicas[5],
-	)
+	// Playlist "Heavy Riffs": Back In Black, Thunderstruck
+	db.Create(&[]schemas.MusicaPlaylist{
+		{MusicaId: musicas[2].ID, PlaylistId: playlists[2].PlaylistId, UsuarioId: playlists[2].UsuarioId, OrdemNaPlaylist: 1},
+		{MusicaId: musicas[5].ID, PlaylistId: playlists[2].PlaylistId, UsuarioId: playlists[2].UsuarioId, OrdemNaPlaylist: 2},
+	})
 }
