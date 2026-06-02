@@ -1,14 +1,10 @@
 package schemas
 
-import (
-	"database/sql"
-
-	"gorm.io/gorm"
-)
+import "time"
 
 type Playlist struct {
-	gorm.Model
-	Usuario_id   uint `gorm:"primaryKey;autoIncrement:false"`
-	Nome         string
-	Data_criacao sql.NullTime
+	PlaylistId  uint      `gorm:"column:playlist_id;primaryKey;autoIncrement"`
+	UsuarioId   uint      `gorm:"column:usuario_id;primaryKey;not null"`
+	Nome        string    `gorm:"not null"`
+	DataCriacao time.Time `gorm:"column:data_criacao;autoCreateTime"`
 }
