@@ -23,6 +23,20 @@ func CreateArtista(artista schemas.Artista) error {
 	return err
 }
 
+func GetArtista(id uint) (schemas.Artista, error) {
+
+	db, err := database.ConnectDB()
+
+	if err != nil {
+		return schemas.Artista{}, err
+	}
+
+	ctx := context.Background()
+	artista, err := gorm.G[schemas.Artista](db).Where("id = ?", id).First(ctx)
+
+	return artista, err
+}
+
 func GetAllArtista() ([]schemas.Artista, error) {
 
 	db, err := database.ConnectDB()
