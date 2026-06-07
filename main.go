@@ -6,6 +6,7 @@ import (
 	"LBD/services"
 	"database/sql"
 	"fmt"
+	"os"
 	"time"
 
 	"gorm.io/gorm"
@@ -28,146 +29,44 @@ func main() {
 		panic(err)
 	}
 
+	modo := "all"
+	if len(os.Args) > 1 {
+		modo = os.Args[1]
+	}
+
 	sufixo := time.Now().Format("20060102150405")
-	usuario := schemas.Usuario{
-		Username: "Usuario Teste " + sufixo,
-		Email:    "usuario.teste." + sufixo + "@email.com",
-	}
 
-	if err := db.Create(&usuario).Error; err != nil {
-		panic(err)
-	}
-
-	var artistaID uint
-	var musicaID uint
-	var playlist schemas.Playlist
-
-	defer func() {
-		if playlist.PlaylistId != 0 {
-			db.Where("playlist_id = ? AND usuario_id = ?", playlist.PlaylistId, playlist.UsuarioId).Delete(&schemas.MusicaPlaylist{})
-			db.Where("playlist_id = ? AND usuario_id = ?", playlist.PlaylistId, playlist.UsuarioId).Delete(&schemas.Playlist{})
+	switch modo {
+	case "artista":
+		if err := executarTesteArtista(sufixo); err != nil {
+			panic(err)
 		}
-
-		if musicaID != 0 {
-			_ = services.DeleteMusica(musicaID)
+	case "musica":
+		if err := executarTesteMusica(sufixo); err != nil {
+			panic(err)
 		}
-
-		if artistaID != 0 {
-			_ = services.DeleteArtista(artistaID)
+	case "playlist":
+		if err := executarTestePlaylist(sufixo); err != nil {
+			panic(err)
 		}
-
-		db.Delete(&schemas.Usuario{}, usuario.ID)
-	}()
-
-	fmt.Println("=== TESTES DO SERVICE DE ARTISTA ===")
-
-	nomeArtista := "Artista Teste " + sufixo
-	err = services.CreateArtista(schemas.Artista{
-		Nome: nomeArtista,
-		Nacionalidade: sql.NullString{
-			String: "Brasileira",
-			Valid:  true,
-		},
-	})
-	printResultado("CreateArtista", err)
-
-	artistas, err := services.GetAllArtista()
-	printResultado("GetAllArtista", err)
-	if err == nil {
-		for _, artista := range artistas {
-			if artista.Nome == nomeArtista {
-				artistaID = artista.ID
-				break
-			}
+	case "imprimirArtistas":
+		artistas, err := services.GetAllArtista()
+		if err != nil {
+			panic(err)
 		}
-	}
-
-	artista, err := services.GetArtista(artistaID)
-	printResultado("GetArtista", err)
-	if err == nil {
-		fmt.Printf("Artista encontrado: ID=%d Nome=%s\n", artista.ID, artista.Nome)
-	}
-
-	artistaAtualizado, err := services.UpdateArtista(schemas.Artista{
-		Model: gorm.Model{ID: artistaID},
-		Nome:  nomeArtista + " Atualizado",
-		Nacionalidade: sql.NullString{
-			String: "Portuguesa",
-			Valid:  true,
-		},
-	})
-	printResultado("UpdateArtista", err)
-	if err == nil {
-		fmt.Printf("Artista atualizado: ID=%d Nome=%s\n", artistaAtualizado.ID, artistaAtualizado.Nome)
-	}
-
-	fmt.Println("\n=== TESTES DO SERVICE DE MUSICA ===")
-
-	tituloMusica := "Musica Teste " + sufixo
-	err = services.CreateMusica(schemas.Musica{
-		Titulo:           tituloMusica,
-		Duracao_segundos: 210,
-		Artista_id:       artistaID,
-	})
-	printResultado("CreateMusica", err)
-
-	musicas, err := services.GetAllMusica()
-	printResultado("GetAllMusica", err)
-	if err == nil {
-		for _, musica := range musicas {
-			if musica.Titulo == tituloMusica {
-				musicaID = musica.ID
-				break
-			}
+		imprimirArtistas(artistas)
+	case "imprimirMusicas":
+		musicas, err := services.GetAllMusica()
+		if err != nil {
+			panic(err)
 		}
-	}
-
-	musica, err := services.GetMusica(musicaID)
-	printResultado("GetMusica", err)
-	if err == nil {
-		fmt.Printf("Musica encontrada: ID=%d Titulo=%s\n", musica.ID, musica.Titulo)
-	}
-
-	musicaAtualizada, err := services.UpdateMusica(schemas.Musica{
-		Model:            gorm.Model{ID: musicaID},
-		Titulo:           tituloMusica + " Atualizada",
-		Duracao_segundos: 240,
-		Artista_id:       artistaID,
-	})
-	printResultado("UpdateMusica", err)
-	if err == nil {
-		fmt.Printf("Musica atualizada: ID=%d Titulo=%s\n", musicaAtualizada.ID, musicaAtualizada.Titulo)
-	}
-
-	fmt.Println("\n=== TESTES DO SERVICE DE PLAYLIST ===")
-
-	playlist, err = services.CreatePlaylist(schemas.Playlist{
-		UsuarioId: usuario.ID,
-		Nome:      "Playlist Teste " + sufixo,
-	})
-	printResultado("CreatePlaylist", err)
-	if err == nil {
-		fmt.Printf("Playlist criada: PlaylistId=%d UsuarioId=%d Nome=%s\n", playlist.PlaylistId, playlist.UsuarioId, playlist.Nome)
-	}
-
-	err = services.AddMusicaToPlaylist(musicaID, playlist.PlaylistId, playlist.UsuarioId)
-	printResultado("AddMusicaToPlaylist", err)
-
-	err = services.RemoveMusicaFromPlaylist(musicaID, playlist.PlaylistId, playlist.UsuarioId)
-	printResultado("RemoveMusicaFromPlaylist", err)
-
-	fmt.Println("\n=== TESTES DE DELETE ===")
-
-	err = services.DeleteMusica(musicaID)
-	printResultado("DeleteMusica", err)
-	if err == nil {
-		musicaID = 0
-	}
-
-	err = services.DeleteArtista(artistaID)
-	printResultado("DeleteArtista", err)
-	if err == nil {
-		artistaID = 0
+		imprimirMusicas(musicas)
+	case "all":
+		if err := executarTodosOsTestes(db, sufixo); err != nil {
+			panic(err)
+		}
+	default:
+		fmt.Println("Modo invalido. Use: all, artista, musica ou playlist")
 	}
 }
 
@@ -178,4 +77,345 @@ func printResultado(nome string, err error) {
 	}
 
 	fmt.Printf("[OK] %s\n", nome)
+}
+
+func imprimirArtistas(artistas []schemas.Artista) {
+	if len(artistas) == 0 {
+		fmt.Println("Nenhum artista encontrado.")
+		return
+	}
+
+	fmt.Println("Lista de artistas:")
+	for _, artista := range artistas {
+		fmt.Printf("- ID=%d | Nome=%s | Nacionalidade=%s\n", artista.ID, artista.Nome, artista.Nacionalidade.String)
+	}
+}
+
+func imprimirMusicas(musicas []schemas.Musica) {
+	if len(musicas) == 0 {
+		fmt.Println("Nenhuma musica encontrada.")
+		return
+	}
+
+	fmt.Println("Lista de musicas:")
+	for _, musica := range musicas {
+		fmt.Printf("- ID=%d | Titulo=%s | Duracao=%d | ArtistaID=%d\n", musica.ID, musica.Titulo, musica.Duracao_segundos, musica.Artista_id)
+	}
+}
+
+func executarTodosOsTestes(db *gorm.DB, sufixo string) error {
+	if err := executarTesteArtista(sufixo); err != nil {
+		return err
+	}
+
+	if err := executarTesteMusica(sufixo); err != nil {
+		return err
+	}
+
+	if err := executarTestePlaylist(sufixo); err != nil {
+		return err
+	}
+
+	return executarTesteDelete(db, sufixo)
+}
+
+func executarTesteArtista(sufixo string) error {
+	fmt.Println("=== TESTES DO SERVICE DE ARTISTA ===")
+
+	nomeArtista := "Artista Teste " + sufixo
+	err := services.CreateArtista(schemas.Artista{
+		Nome: nomeArtista,
+		Nacionalidade: sql.NullString{
+			String: "Brasileira",
+			Valid:  true,
+		},
+	})
+	printResultado("CreateArtista", err)
+	if err != nil {
+		return err
+	}
+
+	artistas, err := services.GetAllArtista()
+	printResultado("GetAllArtista", err)
+	if err != nil {
+		return err
+	}
+	//imprimirArtistas(artistas)
+
+	var artistaID uint
+	for _, artista := range artistas {
+		if artista.Nome == nomeArtista {
+			artistaID = artista.ID
+			break
+		}
+	}
+
+	artista, err := services.GetArtista(artistaID)
+	printResultado("GetArtista", err)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Artista encontrado: ID=%d Nome=%s\n", artista.ID, artista.Nome)
+
+	artistaAtualizado, err := services.UpdateArtista(schemas.Artista{
+		Model: gorm.Model{ID: artistaID},
+		Nome:  nomeArtista + " Atualizado",
+		Nacionalidade: sql.NullString{
+			String: "Portuguesa",
+			Valid:  true,
+		},
+	})
+	printResultado("UpdateArtista", err)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Artista atualizado: ID=%d Nome=%s\n", artistaAtualizado.ID, artistaAtualizado.Nome)
+
+	err = services.DeleteArtista(artistaID)
+	printResultado("DeleteArtista", err)
+	return err
+}
+
+func executarTesteMusica(sufixo string) error {
+	fmt.Println("\n=== TESTES DO SERVICE DE MUSICA ===")
+
+	artistaID, err := criarArtistaBase(sufixo)
+	if err != nil {
+		return err
+	}
+
+	tituloMusica := "Musica Teste " + sufixo
+	err = services.CreateMusica(schemas.Musica{
+		Titulo:           tituloMusica,
+		Duracao_segundos: 210,
+		Artista_id:       artistaID,
+	})
+	printResultado("CreateMusica", err)
+	if err != nil {
+		_ = services.DeleteArtista(artistaID)
+		return err
+	}
+
+	musicas, err := services.GetAllMusica()
+	printResultado("GetAllMusica", err)
+	if err != nil {
+		_ = services.DeleteMusica(0)
+		_ = services.DeleteArtista(artistaID)
+		return err
+	}
+	//imprimirMusicas(musicas)
+
+	var musicaID uint
+	for _, musica := range musicas {
+		if musica.Titulo == tituloMusica {
+			musicaID = musica.ID
+			break
+		}
+	}
+
+	musica, err := services.GetMusica(musicaID)
+	printResultado("GetMusica", err)
+	if err != nil {
+		_ = services.DeleteArtista(artistaID)
+		return err
+	}
+	fmt.Printf("Musica encontrada: ID=%d Titulo=%s\n", musica.ID, musica.Titulo)
+
+	musicaAtualizada, err := services.UpdateMusica(schemas.Musica{
+		Model:            gorm.Model{ID: musicaID},
+		Titulo:           tituloMusica + " Atualizada",
+		Duracao_segundos: 240,
+		Artista_id:       artistaID,
+	})
+	printResultado("UpdateMusica", err)
+	if err != nil {
+		_ = services.DeleteMusica(musicaID)
+		_ = services.DeleteArtista(artistaID)
+		return err
+	}
+	fmt.Printf("Musica atualizada: ID=%d Titulo=%s\n", musicaAtualizada.ID, musicaAtualizada.Titulo)
+
+	err = services.DeleteMusica(musicaID)
+	printResultado("DeleteMusica", err)
+	if err != nil {
+		_ = services.DeleteArtista(artistaID)
+		return err
+	}
+
+	err = services.DeleteArtista(artistaID)
+	printResultado("DeleteArtista", err)
+	return err
+}
+
+func executarTestePlaylist(sufixo string) error {
+	fmt.Println("\n=== TESTES DO SERVICE DE PLAYLIST ===")
+
+	usuario, err := criarUsuarioTeste(sufixo)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		db, dbErr := database.ConnectDB()
+		if dbErr == nil {
+			db.Delete(&schemas.Usuario{}, usuario.ID)
+		}
+	}()
+
+	artistaID, err := criarArtistaBase(sufixo)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = services.DeleteArtista(artistaID)
+	}()
+
+	musicaID, err := criarMusicaBase(sufixo, artistaID)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = services.DeleteMusica(musicaID)
+	}()
+
+	playlist, err := services.CreatePlaylist(schemas.Playlist{
+		UsuarioId: usuario.ID,
+		Nome:      "Playlist Teste " + sufixo,
+	})
+	printResultado("CreatePlaylist", err)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Playlist criada: PlaylistId=%d UsuarioId=%d Nome=%s\n", playlist.PlaylistId, playlist.UsuarioId, playlist.Nome)
+
+	err = services.AddMusicaToPlaylist(musicaID, playlist.PlaylistId, playlist.UsuarioId)
+	printResultado("AddMusicaToPlaylist", err)
+	if err != nil {
+		return err
+	}
+
+	err = services.RemoveMusicaFromPlaylist(musicaID, playlist.PlaylistId, playlist.UsuarioId)
+	printResultado("RemoveMusicaFromPlaylist", err)
+	if err != nil {
+		return err
+	}
+
+	err = removerPlaylist(playlist)
+	printResultado("DeletePlaylist", err)
+	return err
+}
+
+func executarTesteDelete(db *gorm.DB, sufixo string) error {
+	fmt.Println("\n=== TESTES DE DELETE ===")
+
+	artistaID, err := criarArtistaBase(sufixo)
+	if err != nil {
+		return err
+	}
+
+	musicaID, err := criarMusicaBase(sufixo, artistaID)
+	if err != nil {
+		_ = services.DeleteArtista(artistaID)
+		return err
+	}
+
+	err = services.DeleteMusica(musicaID)
+	printResultado("DeleteMusica", err)
+	if err != nil {
+		_ = services.DeleteArtista(artistaID)
+		return err
+	}
+
+	err = services.DeleteArtista(artistaID)
+	printResultado("DeleteArtista", err)
+	return err
+}
+
+func criarUsuarioTeste(sufixo string) (schemas.Usuario, error) {
+	db, err := database.ConnectDB()
+	if err != nil {
+		return schemas.Usuario{}, err
+	}
+
+	usuario := schemas.Usuario{
+		Username: "Usuario Teste " + sufixo,
+		Email:    "usuario.teste." + sufixo + "@email.com",
+	}
+
+	if err := db.Create(&usuario).Error; err != nil {
+		return schemas.Usuario{}, err
+	}
+
+	return usuario, nil
+}
+
+func criarArtistaBase(sufixo string) (uint, error) {
+	nomeArtista := "Artista Teste " + sufixo
+	err := services.CreateArtista(schemas.Artista{
+		Nome: nomeArtista,
+		Nacionalidade: sql.NullString{
+			String: "Brasileira",
+			Valid:  true,
+		},
+	})
+	printResultado("CreateArtista", err)
+	if err != nil {
+		return 0, err
+	}
+
+	artistas, err := services.GetAllArtista()
+	printResultado("GetAllArtista", err)
+	if err != nil {
+		return 0, err
+	}
+	imprimirArtistas(artistas)
+
+	for _, artista := range artistas {
+		if artista.Nome == nomeArtista {
+			return artista.ID, nil
+		}
+	}
+
+	return 0, fmt.Errorf("artista teste nao encontrado")
+}
+
+func criarMusicaBase(sufixo string, artistaID uint) (uint, error) {
+	tituloMusica := "Musica Teste " + sufixo
+	err := services.CreateMusica(schemas.Musica{
+		Titulo:           tituloMusica,
+		Duracao_segundos: 210,
+		Artista_id:       artistaID,
+	})
+	printResultado("CreateMusica", err)
+	if err != nil {
+		return 0, err
+	}
+
+	musicas, err := services.GetAllMusica()
+	printResultado("GetAllMusica", err)
+	if err != nil {
+		return 0, err
+	}
+	imprimirMusicas(musicas)
+
+	for _, musica := range musicas {
+		if musica.Titulo == tituloMusica {
+			return musica.ID, nil
+		}
+	}
+
+	return 0, fmt.Errorf("musica teste nao encontrada")
+}
+
+func removerPlaylist(playlist schemas.Playlist) error {
+	db, err := database.ConnectDB()
+	if err != nil {
+		return err
+	}
+
+	err = db.Where("playlist_id = ? AND usuario_id = ?", playlist.PlaylistId, playlist.UsuarioId).Delete(&schemas.MusicaPlaylist{}).Error
+	if err != nil {
+		return err
+	}
+
+	return db.Where("playlist_id = ? AND usuario_id = ?", playlist.PlaylistId, playlist.UsuarioId).Delete(&schemas.Playlist{}).Error
 }
