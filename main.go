@@ -3,6 +3,7 @@ package main
 import (
 	"LBD/database"
 	"LBD/schemas"
+	"LBD/seed"
 	"LBD/services"
 	"database/sql"
 	"fmt"
@@ -39,6 +40,10 @@ func main() {
 	args := os.Args[2:]
 
 	switch modo {
+	case "seed":
+		seed.Seed(db)
+		fmt.Println("Seed concluído")
+		return
 	case "createArtista":
 		if err := executarCreateArtista(sufixo); err != nil {
 			panic(err)
