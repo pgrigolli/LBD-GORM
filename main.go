@@ -48,6 +48,12 @@ func main() {
 		if err := executarCreateArtista(sufixo); err != nil {
 			panic(err)
 		}
+	case "resetDb":
+		if err := resetDB(db); err != nil {
+			panic(err)
+		}
+		fmt.Println("resetDb concluído")
+		return
 	case "getArtista":
 		if err := executarGetArtista(args); err != nil {
 			panic(err)
@@ -192,6 +198,34 @@ func imprimirUsuarios(usuarios []schemas.Usuario) {
 	for _, u := range usuarios {
 		fmt.Printf("- ID=%d | Username=%s | Email=%s\n", u.ID, u.Username, u.Email)
 	}
+}
+
+func resetDB(db *gorm.DB) error {
+	fmt.Println("=== RESET DB: Dropping tables and reapplying migrations ===")
+
+	// Drop tables in order to avoid FK issues
+	if err := db.Migrator().DropTable(
+		&schemas.MusicaPlaylist{},
+		&schemas.Playlist{},
+		&schemas.Musica{},
+		&schemas.Artista{},
+		&schemas.Usuario{},
+	); err != nil {
+		return err
+	}
+
+	// Recreate tables according to current models
+	if err := db.AutoMigrate(
+		&schemas.Artista{},
+		&schemas.Usuario{},
+		&schemas.Musica{},
+		&schemas.Playlist{},
+		&schemas.MusicaPlaylist{},
+	); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func executarCreateArtista(sufixo string) error {
