@@ -91,6 +91,10 @@ func main() {
 		if err := executarRemoveMusicaFromPlaylist(args); err != nil {
 			panic(err)
 		}
+	case "getAllPlaylist":
+		if err := executarGetAllPlaylist(); err != nil {
+			panic(err)
+		}
 	case "artista":
 		if err := executarTesteArtista(sufixo); err != nil {
 			panic(err)
@@ -154,6 +158,18 @@ func imprimirMusicas(musicas []schemas.Musica) {
 	fmt.Println("Lista de musicas:")
 	for _, musica := range musicas {
 		fmt.Printf("- ID=%d | Titulo=%s | Duracao=%d | ArtistaID=%d\n", musica.ID, musica.Titulo, musica.Duracao_segundos, musica.Artista_id)
+	}
+}
+
+func imprimirPlaylists(playlists []schemas.Playlist) {
+	if len(playlists) == 0 {
+		fmt.Println("Nenhuma playlist encontrada.")
+		return
+	}
+
+	fmt.Println("Lista de playlists:")
+	for _, p := range playlists {
+		fmt.Printf("- PlaylistId=%d | UsuarioId=%d | Nome=%s | DataCriacao=%s\n", p.PlaylistId, p.UsuarioId, p.Nome, p.DataCriacao.String())
 	}
 }
 
@@ -284,6 +300,17 @@ func executarGetAllMusica() error {
 	}
 
 	imprimirMusicas(musicas)
+	return nil
+}
+
+func executarGetAllPlaylist() error {
+	playlists, err := services.GetAllPlaylist()
+	printResultado("GetAllPlaylist", err)
+	if err != nil {
+		return err
+	}
+
+	imprimirPlaylists(playlists)
 	return nil
 }
 

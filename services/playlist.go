@@ -23,6 +23,17 @@ func CreatePlaylist(playlist schemas.Playlist) (schemas.Playlist, error) {
 	return playlist, err
 }
 
+func GetAllPlaylist() ([]schemas.Playlist, error) {
+	db, err := database.ConnectDB()
+
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	return gorm.G[schemas.Playlist](db.Debug()).Find(ctx)
+}
+
 func AddMusicaToPlaylist(musicaId, playlistId, usuarioId uint) error {
 
 	db, err := database.ConnectDB()
