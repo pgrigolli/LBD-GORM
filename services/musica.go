@@ -18,7 +18,7 @@ func CreateMusica(musica schemas.Musica) error {
 	}
 
 	ctx := context.Background()
-	return gorm.G[schemas.Musica](db).Create(ctx, &musica)
+	return gorm.G[schemas.Musica](db.Debug()).Create(ctx, &musica)
 }
 
 func GetMusica(id uint) (schemas.Musica, error) {
@@ -30,7 +30,7 @@ func GetMusica(id uint) (schemas.Musica, error) {
 	}
 
 	ctx := context.Background()
-	return gorm.G[schemas.Musica](db).Where("id = ?", id).First(ctx)
+	return gorm.G[schemas.Musica](db.Debug()).Where("id = ?", id).First(ctx)
 }
 
 func GetAllMusica() ([]schemas.Musica, error) {
@@ -42,7 +42,7 @@ func GetAllMusica() ([]schemas.Musica, error) {
 	}
 
 	ctx := context.Background()
-	return gorm.G[schemas.Musica](db).Find(ctx)
+	return gorm.G[schemas.Musica](db.Debug()).Find(ctx)
 }
 
 func UpdateMusica(musica schemas.Musica) (schemas.Musica, error) {
@@ -54,7 +54,7 @@ func UpdateMusica(musica schemas.Musica) (schemas.Musica, error) {
 	}
 
 	ctx := context.Background()
-	rows, err := gorm.G[schemas.Musica](db).Where("id = ?", musica.ID).Updates(ctx, musica)
+	rows, err := gorm.G[schemas.Musica](db.Debug()).Where("id = ?", musica.ID).Updates(ctx, musica)
 
 	if err != nil {
 		return schemas.Musica{}, err
@@ -76,7 +76,7 @@ func DeleteMusica(id uint) error {
 	}
 
 	ctx := context.Background()
-	rows, err := gorm.G[schemas.Musica](db).Where("id = ?", id).Delete(ctx)
+	rows, err := gorm.G[schemas.Musica](db.Debug()).Where("id = ?", id).Delete(ctx)
 
 	if err != nil {
 		return err

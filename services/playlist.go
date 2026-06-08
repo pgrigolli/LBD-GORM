@@ -18,7 +18,7 @@ func CreatePlaylist(playlist schemas.Playlist) (schemas.Playlist, error) {
 	}
 
 	ctx := context.Background()
-	err = gorm.G[schemas.Playlist](db).Create(ctx, &playlist)
+	err = gorm.G[schemas.Playlist](db.Debug()).Create(ctx, &playlist)
 
 	return playlist, err
 }
@@ -33,7 +33,7 @@ func AddMusicaToPlaylist(musicaId, playlistId, usuarioId uint) error {
 
 	ctx := context.Background()
 
-	existentes, err := gorm.G[schemas.MusicaPlaylist](db).
+	existentes, err := gorm.G[schemas.MusicaPlaylist](db.Debug()).
 		Where("playlist_id = ? AND usuario_id = ?", playlistId, usuarioId).
 		Find(ctx)
 
@@ -48,7 +48,7 @@ func AddMusicaToPlaylist(musicaId, playlistId, usuarioId uint) error {
 		OrdemNaPlaylist: len(existentes) + 1,
 	}
 
-	return gorm.G[schemas.MusicaPlaylist](db).Create(ctx, &mp)
+	return gorm.G[schemas.MusicaPlaylist](db.Debug()).Create(ctx, &mp)
 }
 
 func RemoveMusicaFromPlaylist(musicaId, playlistId, usuarioId uint) error {
@@ -61,7 +61,7 @@ func RemoveMusicaFromPlaylist(musicaId, playlistId, usuarioId uint) error {
 
 	ctx := context.Background()
 
-	rows, err := gorm.G[schemas.MusicaPlaylist](db).
+	rows, err := gorm.G[schemas.MusicaPlaylist](db.Debug()).
 		Where("musica_id = ? AND playlist_id = ? AND usuario_id = ?", musicaId, playlistId, usuarioId).
 		Delete(ctx)
 

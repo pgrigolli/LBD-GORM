@@ -18,7 +18,7 @@ func CreateArtista(artista schemas.Artista) error {
 	}
 
 	ctx := context.Background()
-	err = gorm.G[schemas.Artista](db).Create(ctx, &artista)
+	err = gorm.G[schemas.Artista](db.Debug()).Create(ctx, &artista)
 
 	return err
 }
@@ -32,7 +32,7 @@ func GetArtista(id uint) (schemas.Artista, error) {
 	}
 
 	ctx := context.Background()
-	artista, err := gorm.G[schemas.Artista](db).Where("id = ?", id).First(ctx)
+	artista, err := gorm.G[schemas.Artista](db.Debug()).Where("id = ?", id).First(ctx)
 
 	return artista, err
 }
@@ -46,7 +46,7 @@ func GetAllArtista() ([]schemas.Artista, error) {
 	}
 
 	ctx := context.Background()
-	artistas, err := gorm.G[schemas.Artista](db).Find(ctx)
+	artistas, err := gorm.G[schemas.Artista](db.Debug()).Find(ctx)
 
 	return artistas, err
 
@@ -60,7 +60,7 @@ func UpdateArtista(artista schemas.Artista) (schemas.Artista, error) {
 	}
 
 	ctx := context.Background()
-	rows, err := gorm.G[schemas.Artista](db).Where("id = ?", artista.ID).Updates(ctx, artista)
+	rows, err := gorm.G[schemas.Artista](db.Debug()).Where("id = ?", artista.ID).Updates(ctx, artista)
 
 	if err != nil {
 		return schemas.Artista{}, err
@@ -84,7 +84,7 @@ func DeleteArtista(artistaID uint) error {
 
 	ctx := context.Background()
 
-	rows, err := gorm.G[schemas.Artista](db).Where("id = ?", artistaID).Delete(ctx)
+	rows, err := gorm.G[schemas.Artista](db.Debug()).Where("id = ?", artistaID).Delete(ctx)
 	if err != nil {
 		return err
 	}

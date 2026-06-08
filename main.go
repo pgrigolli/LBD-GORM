@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"gorm.io/gorm"
@@ -35,8 +36,61 @@ func main() {
 	}
 
 	sufixo := time.Now().Format("20060102150405")
+	args := os.Args[2:]
 
 	switch modo {
+	case "createArtista":
+		if err := executarCreateArtista(sufixo); err != nil {
+			panic(err)
+		}
+	case "getArtista":
+		if err := executarGetArtista(args); err != nil {
+			panic(err)
+		}
+	case "getAllArtista":
+		if err := executarGetAllArtista(); err != nil {
+			panic(err)
+		}
+	case "updateArtista":
+		if err := executarUpdateArtista(args, sufixo); err != nil {
+			panic(err)
+		}
+	case "deleteArtista":
+		if err := executarDeleteArtista(args); err != nil {
+			panic(err)
+		}
+	case "createMusica":
+		if err := executarCreateMusica(args, sufixo); err != nil {
+			panic(err)
+		}
+	case "getMusica":
+		if err := executarGetMusica(args); err != nil {
+			panic(err)
+		}
+	case "getAllMusica":
+		if err := executarGetAllMusica(); err != nil {
+			panic(err)
+		}
+	case "updateMusica":
+		if err := executarUpdateMusica(args, sufixo); err != nil {
+			panic(err)
+		}
+	case "deleteMusica":
+		if err := executarDeleteMusica(args); err != nil {
+			panic(err)
+		}
+	case "createPlaylist":
+		if err := executarCreatePlaylist(args, sufixo); err != nil {
+			panic(err)
+		}
+	case "addMusicaToPlaylist":
+		if err := executarAddMusicaToPlaylist(args); err != nil {
+			panic(err)
+		}
+	case "removeMusicaFromPlaylist":
+		if err := executarRemoveMusicaFromPlaylist(args); err != nil {
+			panic(err)
+		}
 	case "artista":
 		if err := executarTesteArtista(sufixo); err != nil {
 			panic(err)
@@ -66,7 +120,7 @@ func main() {
 			panic(err)
 		}
 	default:
-		fmt.Println("Modo invalido. Use: all, artista, musica ou playlist")
+		fmt.Println("Modo invalido. Use: all, createArtista, getArtista, getAllArtista, updateArtista, deleteArtista, createMusica, getMusica, getAllMusica, updateMusica, deleteMusica, createPlaylist, addMusicaToPlaylist, removeMusicaFromPlaylist, artista, musica ou playlist")
 	}
 }
 
@@ -101,6 +155,242 @@ func imprimirMusicas(musicas []schemas.Musica) {
 	for _, musica := range musicas {
 		fmt.Printf("- ID=%d | Titulo=%s | Duracao=%d | ArtistaID=%d\n", musica.ID, musica.Titulo, musica.Duracao_segundos, musica.Artista_id)
 	}
+}
+
+func executarCreateArtista(sufixo string) error {
+	fmt.Println("=== CREATE ARTISTA ===")
+
+	novoArtista := schemas.Artista{
+		Nome: "Artista Criado " + sufixo,
+		Nacionalidade: sql.NullString{
+			String: "Brasileira",
+			Valid:  true,
+		},
+	}
+
+	err := services.CreateArtista(novoArtista)
+	printResultado("CreateArtista", err)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Artista criado: Nome=%s\n", novoArtista.Nome)
+	return nil
+}
+
+func executarGetArtista(args []string) error {
+	artistaID, err := parseUintArg(args, 0, "artistaID")
+	if err != nil {
+		return err
+	}
+
+	artista, err := services.GetArtista(artistaID)
+	printResultado("GetArtista", err)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Artista encontrado: ID=%d Nome=%s\n", artista.ID, artista.Nome)
+	return nil
+}
+
+func executarGetAllArtista() error {
+	artistas, err := services.GetAllArtista()
+	printResultado("GetAllArtista", err)
+	if err != nil {
+		return err
+	}
+
+	imprimirArtistas(artistas)
+	return nil
+}
+
+func executarUpdateArtista(args []string, sufixo string) error {
+	artistaID, err := parseUintArg(args, 0, "artistaID")
+	if err != nil {
+		return err
+	}
+
+	artistaAtualizado, err := services.UpdateArtista(schemas.Artista{
+		Model: gorm.Model{ID: artistaID},
+		Nome:  "Artista Atualizado " + sufixo,
+		Nacionalidade: sql.NullString{
+			String: "Portuguesa",
+			Valid:  true,
+		},
+	})
+	printResultado("UpdateArtista", err)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Artista atualizado: ID=%d Nome=%s\n", artistaAtualizado.ID, artistaAtualizado.Nome)
+	return nil
+}
+
+func executarDeleteArtista(args []string) error {
+	artistaID, err := parseUintArg(args, 0, "artistaID")
+	if err != nil {
+		return err
+	}
+
+	err = services.DeleteArtista(artistaID)
+	printResultado("DeleteArtista", err)
+	return err
+}
+
+func executarCreateMusica(args []string, sufixo string) error {
+	artistaID, err := parseUintArg(args, 0, "artistaID")
+	if err != nil {
+		return err
+	}
+
+	tituloMusica := "Musica Criada " + sufixo
+	err = services.CreateMusica(schemas.Musica{
+		Titulo:           tituloMusica,
+		Duracao_segundos: 210,
+		Artista_id:       artistaID,
+	})
+	printResultado("CreateMusica", err)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Musica criada: Titulo=%s ArtistaID=%d\n", tituloMusica, artistaID)
+	return nil
+}
+
+func executarGetMusica(args []string) error {
+	musicaID, err := parseUintArg(args, 0, "musicaID")
+	if err != nil {
+		return err
+	}
+
+	musica, err := services.GetMusica(musicaID)
+	printResultado("GetMusica", err)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Musica encontrada: ID=%d Titulo=%s\n", musica.ID, musica.Titulo)
+	return nil
+}
+
+func executarGetAllMusica() error {
+	musicas, err := services.GetAllMusica()
+	printResultado("GetAllMusica", err)
+	if err != nil {
+		return err
+	}
+
+	imprimirMusicas(musicas)
+	return nil
+}
+
+func executarUpdateMusica(args []string, sufixo string) error {
+	musicaID, err := parseUintArg(args, 0, "musicaID")
+	if err != nil {
+		return err
+	}
+	artistaID, err := parseUintArg(args, 1, "artistaID")
+	if err != nil {
+		return err
+	}
+
+	musicaAtualizada, err := services.UpdateMusica(schemas.Musica{
+		Model:            gorm.Model{ID: musicaID},
+		Titulo:           "Musica Atualizada " + sufixo,
+		Duracao_segundos: 240,
+		Artista_id:       artistaID,
+	})
+	printResultado("UpdateMusica", err)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Musica atualizada: ID=%d Titulo=%s\n", musicaAtualizada.ID, musicaAtualizada.Titulo)
+	return nil
+}
+
+func executarDeleteMusica(args []string) error {
+	musicaID, err := parseUintArg(args, 0, "musicaID")
+	if err != nil {
+		return err
+	}
+
+	err = services.DeleteMusica(musicaID)
+	printResultado("DeleteMusica", err)
+	return err
+}
+
+func executarCreatePlaylist(args []string, sufixo string) error {
+	usuarioID, err := parseUintArg(args, 0, "usuarioID")
+	if err != nil {
+		return err
+	}
+
+	playlist, err := services.CreatePlaylist(schemas.Playlist{
+		UsuarioId: usuarioID,
+		Nome:      "Playlist Criada " + sufixo,
+	})
+	printResultado("CreatePlaylist", err)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Playlist criada: PlaylistId=%d UsuarioId=%d Nome=%s\n", playlist.PlaylistId, playlist.UsuarioId, playlist.Nome)
+	return nil
+}
+
+func executarAddMusicaToPlaylist(args []string) error {
+	musicaID, err := parseUintArg(args, 0, "musicaID")
+	if err != nil {
+		return err
+	}
+	playlistID, err := parseUintArg(args, 1, "playlistID")
+	if err != nil {
+		return err
+	}
+	usuarioID, err := parseUintArg(args, 2, "usuarioID")
+	if err != nil {
+		return err
+	}
+
+	err = services.AddMusicaToPlaylist(musicaID, playlistID, usuarioID)
+	printResultado("AddMusicaToPlaylist", err)
+	return err
+}
+
+func executarRemoveMusicaFromPlaylist(args []string) error {
+	musicaID, err := parseUintArg(args, 0, "musicaID")
+	if err != nil {
+		return err
+	}
+	playlistID, err := parseUintArg(args, 1, "playlistID")
+	if err != nil {
+		return err
+	}
+	usuarioID, err := parseUintArg(args, 2, "usuarioID")
+	if err != nil {
+		return err
+	}
+
+	err = services.RemoveMusicaFromPlaylist(musicaID, playlistID, usuarioID)
+	printResultado("RemoveMusicaFromPlaylist", err)
+	return err
+}
+
+func parseUintArg(args []string, index int, nome string) (uint, error) {
+	if len(args) <= index {
+		return 0, fmt.Errorf("faltando argumento %s", nome)
+	}
+
+	valor, err := strconv.ParseUint(args[index], 10, 0)
+	if err != nil {
+		return 0, fmt.Errorf("argumento %s invalido: %w", nome, err)
+	}
+
+	return uint(valor), nil
 }
 
 func executarTodosOsTestes(db *gorm.DB, sufixo string) error {
