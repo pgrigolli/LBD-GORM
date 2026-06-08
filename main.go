@@ -95,6 +95,10 @@ func main() {
 		if err := executarGetAllPlaylist(); err != nil {
 			panic(err)
 		}
+	case "getAllUsuario":
+		if err := executarGetAllUsuario(); err != nil {
+			panic(err)
+		}
 	case "artista":
 		if err := executarTesteArtista(sufixo); err != nil {
 			panic(err)
@@ -124,7 +128,7 @@ func main() {
 			panic(err)
 		}
 	default:
-		fmt.Println("Modo invalido. Use: all, createArtista, getArtista, getAllArtista, updateArtista, deleteArtista, createMusica, getMusica, getAllMusica, updateMusica, deleteMusica, createPlaylist, addMusicaToPlaylist, removeMusicaFromPlaylist, artista, musica ou playlist")
+		fmt.Println("Modo invalido. Use: all, createArtista, getArtista, getAllArtista, updateArtista, deleteArtista, createMusica, getMusica, getAllMusica, updateMusica, deleteMusica, createPlaylist, getAllPlaylist, addMusicaToPlaylist, removeMusicaFromPlaylist, getAllUsuario, artista, musica ou playlist")
 	}
 }
 
@@ -170,6 +174,18 @@ func imprimirPlaylists(playlists []schemas.Playlist) {
 	fmt.Println("Lista de playlists:")
 	for _, p := range playlists {
 		fmt.Printf("- PlaylistId=%d | UsuarioId=%d | Nome=%s | DataCriacao=%s\n", p.PlaylistId, p.UsuarioId, p.Nome, p.DataCriacao.String())
+	}
+}
+
+func imprimirUsuarios(usuarios []schemas.Usuario) {
+	if len(usuarios) == 0 {
+		fmt.Println("Nenhum usuario encontrado.")
+		return
+	}
+
+	fmt.Println("Lista de usuarios:")
+	for _, u := range usuarios {
+		fmt.Printf("- ID=%d | Username=%s | Email=%s\n", u.ID, u.Username, u.Email)
 	}
 }
 
@@ -311,6 +327,17 @@ func executarGetAllPlaylist() error {
 	}
 
 	imprimirPlaylists(playlists)
+	return nil
+}
+
+func executarGetAllUsuario() error {
+	usuarios, err := services.GetAllUsuario()
+	printResultado("GetAllUsuario", err)
+	if err != nil {
+		return err
+	}
+
+	imprimirUsuarios(usuarios)
 	return nil
 }
 
