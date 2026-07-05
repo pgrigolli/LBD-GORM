@@ -3,6 +3,7 @@ package services
 import (
 	"LBD/schemas"
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 
@@ -81,6 +82,82 @@ func RemoveMusicaFromPlaylist(musicaId, playlistId, usuarioId uint) error {
 	}
 
 	return nil
+}
+
+func TransferirMusicaEntrePlaylists(musicaId, playlistOrigemId, playlistDestinoId, usuarioId uint) error {
+	db, err := connectDB()
+	if err != nil {
+		return err
+	}
+
+	if playlistOrigemId == playlistDestinoId {
+		return fmt.Errorf("playlist de origem e destino devem ser diferentes")
+	}
+
+	ctx := context.Background()
+	return db.Debug().Transaction(func(tx *gorm.DB) error {
+		_, err := gorm.G[schemas.Playlist](tx.Debug()).
+			Where("playlist_id = ? AND usuario_id = ?", playlistOrigemId, usuarioId).
+			First(ctx)
+		if err != nil {
+			return fmt.Errorf("playlist de origem (%d, %d) nao encontrada: %w", playlistOrigemId, usuarioId, err)
+		}
+
+		_, err = gorm.G[schemas.Playlist](tx.Debug()).
+			Where("playlist_id = ? AND usuario_id = ?", playlistDestinoId, usuarioId).
+			First(ctx)
+		if err != nil {
+			return fmt.Errorf("playlist de destino (%d, %d) nao encontrada: %w", playlistDestinoId, usuarioId, err)
+		}
+
+		_, err = gorm.G[schemas.MusicaPlaylist](tx.Debug()).
+			Where("musica_id = ? AND playlist_id = ? AND usuario_id = ?", musicaId, playlistOrigemId, usuarioId).
+			First(ctx)
+		if err != nil {
+			return fmt.Errorf("musica %d nao encontrada na playlist de origem (%d, %d): %w", musicaId, playlistOrigemId, usuarioId, err)
+		}
+
+		_, err = gorm.G[schemas.MusicaPlaylist](tx.Debug()).
+			Where("musica_id = ? AND playlist_id = ? AND usuario_id = ?", musicaId, playlistDestinoId, usuarioId).
+			First(ctx)
+		if err == nil {
+			return fmt.Errorf("musica %d ja existe na playlist de destino (%d, %d)", musicaId, playlistDestinoId, usuarioId)
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		itensDestino, err := gorm.G[schemas.MusicaPlaylist](tx.Debug()).
+			Where("playlist_id = ? AND usuario_id = ?", playlistDestinoId, usuarioId).
+			Find(ctx)
+		if err != nil {
+			return err
+		}
+
+		proximaOrdem := 1
+		for _, item := range itensDestino {
+			if item.OrdemNaPlaylist >= proximaOrdem {
+				proximaOrdem = item.OrdemNaPlaylist + 1
+			}
+		}
+
+		rows, err := gorm.G[schemas.MusicaPlaylist](tx.Debug()).
+			Where("musica_id = ? AND playlist_id = ? AND usuario_id = ?", musicaId, playlistOrigemId, usuarioId).
+			Delete(ctx)
+		if err != nil {
+			return err
+		}
+		if rows == 0 {
+			return fmt.Errorf("musica %d nao encontrada na playlist de origem (%d, %d)", musicaId, playlistOrigemId, usuarioId)
+		}
+
+		return gorm.G[schemas.MusicaPlaylist](tx.Debug()).Create(ctx, &schemas.MusicaPlaylist{
+			MusicaId:        musicaId,
+			PlaylistId:      playlistDestinoId,
+			UsuarioId:       usuarioId,
+			OrdemNaPlaylist: proximaOrdem,
+		})
+	})
 }
 
 func GetMusicasDaPlaylist(nomePlaylist string) ([]MusicaNaPlaylist, error) {

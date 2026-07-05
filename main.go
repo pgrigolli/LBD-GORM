@@ -119,6 +119,10 @@ func main() {
 		if err := executarRemoveMusicaFromPlaylist(args); err != nil {
 			panic(err)
 		}
+	case "transferirMusicaEntrePlaylists":
+		if err := executarTransferirMusicaEntrePlaylists(args); err != nil {
+			panic(err)
+		}
 	case "getAllPlaylist":
 		if err := executarGetAllPlaylist(); err != nil {
 			panic(err)
@@ -129,6 +133,10 @@ func main() {
 		}
 	case "listarDonoBohemianRhapsody":
 		if err := executarListarDonoDaMusica("Bohemian Rhapsody"); err != nil {
+			panic(err)
+		}
+	case "getMusicasLedZeppelinMaioresQueQueen":
+		if err := GetMusicasLedZeppelinMaioresQueQueen(); err != nil {
 			panic(err)
 		}
 	case "getRankingPopularidadeArtista":
@@ -183,8 +191,11 @@ func printUso() {
 	fmt.Println("  go run . createMusica <artistaID>")
 	fmt.Println("  go run . createPlaylist <usuarioID>")
 	fmt.Println("  go run . addMusicaToPlaylist <musicaID> <playlistID> <usuarioID>")
+	fmt.Println("  go run . removeMusicaFromPlaylist <musicaID> <playlistID> <usuarioID>")
+	fmt.Println("  go run . transferirMusicaEntrePlaylists <musicaID> <playlistOrigemID> <playlistDestinoID> <usuarioID>")
 	fmt.Println("  go run . listarRockDoPablo")
 	fmt.Println("  go run . listarDonoBohemianRhapsody")
+	fmt.Println("  go run . getMusicasLedZeppelinMaioresQueQueen")
 	fmt.Println("  go run . getRankingPopularidadeArtista")
 	fmt.Println("  go run . help")
 }
@@ -284,6 +295,26 @@ func executarListarDonoDaMusica(tituloMusica string) error {
 	fmt.Printf("Usuarios donos da playlist que contem %q:\n", tituloMusica)
 	for _, username := range usuarios {
 		fmt.Printf("- Username=%s\n", username)
+	}
+
+	return nil
+}
+
+func GetMusicasLedZeppelinMaioresQueQueen() error {
+	musicas, err := services.GetMusicasLedZeppelinMaioresQueMaiorMusicaQueen()
+	printResultado("GetMusicasLedZeppelinMaioresQueMaiorMusicaQueen", err)
+	if err != nil {
+		return err
+	}
+
+	if len(musicas) == 0 {
+		fmt.Println("Nenhuma musica do Led Zeppelin encontrada com duracao maior que a musica mais longa do Queen.")
+		return nil
+	}
+
+	fmt.Println("Musicas do Led Zeppelin com duracao maior que a musica mais longa do Queen:")
+	for _, musica := range musicas {
+		fmt.Printf("- ID=%d | Titulo=%s | Duracao=%d | ArtistaID=%d\n", musica.ID, musica.Titulo, musica.Duracao_segundos, musica.Artista_id)
 	}
 
 	return nil
@@ -639,6 +670,40 @@ func executarRemoveMusicaFromPlaylist(args []string) error {
 	err = services.RemoveMusicaFromPlaylist(musicaID, playlistID, usuarioID)
 	printResultado("RemoveMusicaFromPlaylist", err)
 	return err
+}
+
+func executarTransferirMusicaEntrePlaylists(args []string) error {
+	musicaID, err := parseUintArg(args, 0, "musicaID")
+	if err != nil {
+		return err
+	}
+	playlistOrigemID, err := parseUintArg(args, 1, "playlistOrigemID")
+	if err != nil {
+		return err
+	}
+	playlistDestinoID, err := parseUintArg(args, 2, "playlistDestinoID")
+	if err != nil {
+		return err
+	}
+	usuarioID, err := parseUintArg(args, 3, "usuarioID")
+	if err != nil {
+		return err
+	}
+
+	err = services.TransferirMusicaEntrePlaylists(musicaID, playlistOrigemID, playlistDestinoID, usuarioID)
+	printResultado("TransferirMusicaEntrePlaylists", err)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf(
+		"Musica transferida: MusicaId=%d | OrigemPlaylistId=%d | DestinoPlaylistId=%d | UsuarioId=%d\n",
+		musicaID,
+		playlistOrigemID,
+		playlistDestinoID,
+		usuarioID,
+	)
+	return nil
 }
 
 func parseUintArg(args []string, index int, nome string) (uint, error) {

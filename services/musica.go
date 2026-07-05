@@ -44,6 +44,32 @@ func GetAllMusica() ([]schemas.Musica, error) {
 	return gorm.G[schemas.Musica](db.Debug()).Find(ctx)
 }
 
+func GetMusicasLedZeppelinMaioresQueMaiorMusicaQueen() ([]schemas.Musica, error) {
+	db, err := connectDB()
+	if err != nil {
+		return nil, err
+	}
+
+	maiorDuracaoQueen := db.
+		Table(`"MUSICA" mq`).
+		Select("MAX(mq.duracao_segundos)").
+		Joins(`INNER JOIN "ARTISTA" aq ON aq.id = mq.artista_id`).
+		Where("aq.nome = ?", "Queen")
+
+	var musicas []schemas.Musica
+	err = db.Debug().
+		Table(`"MUSICA" m`).
+		Select("m.*").
+		Joins(`INNER JOIN "ARTISTA" a ON a.id = m.artista_id`).
+		Where("a.nome = ?", "Led Zeppelin").
+		Where("m.duracao_segundos > (?)", maiorDuracaoQueen).
+		Order("m.duracao_segundos DESC").
+		Order("m.titulo ASC").
+		Scan(&musicas).Error
+
+	return musicas, err
+}
+
 func UpdateMusica(musica schemas.Musica) (schemas.Musica, error) {
 
 	db, err := connectDB()
