@@ -35,7 +35,7 @@ func main() {
 		panic(err)
 	}
 
-	modo := "all"
+	modo := "demo"
 	if len(os.Args) > 1 {
 		modo = os.Args[1]
 	}
@@ -44,6 +44,19 @@ func main() {
 	args := os.Args[2:]
 
 	switch modo {
+	case "help":
+		printUso()
+		return
+	case "demo":
+		if err := executarDemoCompleta(db, sufixo); err != nil {
+			panic(err)
+		}
+		return
+	case "smoke":
+		if err := executarSmokeTest(db, sufixo); err != nil {
+			panic(err)
+		}
+		return
 	case "seed":
 		seed.Seed(db)
 		fmt.Println("Seed concluído")
@@ -110,6 +123,18 @@ func main() {
 		if err := executarGetAllPlaylist(); err != nil {
 			panic(err)
 		}
+	case "listarRockDoPablo":
+		if err := executarListarMusicasRockDoPablo(); err != nil {
+			panic(err)
+		}
+	case "listarDonoBohemianRhapsody":
+		if err := executarListarDonoDaMusica("Bohemian Rhapsody"); err != nil {
+			panic(err)
+		}
+	case "getRankingPopularidadeArtista":
+		if err := GetRankingPopularidadeArtista(); err != nil {
+			panic(err)
+		}
 	case "getAllUsuario":
 		if err := executarGetAllUsuario(); err != nil {
 			panic(err)
@@ -139,12 +164,29 @@ func main() {
 		}
 		imprimirMusicas(musicas)
 	case "all":
-		if err := executarTodosOsTestes(db, sufixo); err != nil {
+		if err := executarDemoCompleta(db, sufixo); err != nil {
 			panic(err)
 		}
 	default:
-		fmt.Println("Modo invalido. Use: all, createArtista, getArtista, getAllArtista, updateArtista, deleteArtista, createMusica, getMusica, getAllMusica, updateMusica, deleteMusica, createPlaylist, getAllPlaylist, addMusicaToPlaylist, removeMusicaFromPlaylist, getAllUsuario, artista, musica ou playlist")
+		printUso()
 	}
+}
+
+func printUso() {
+	fmt.Println("Uso:")
+	fmt.Println("  go run .")
+	fmt.Println("  go run . demo")
+	fmt.Println("  go run . smoke")
+	fmt.Println("  go run . resetDb")
+	fmt.Println("  go run . seed")
+	fmt.Println("  go run . createArtista")
+	fmt.Println("  go run . createMusica <artistaID>")
+	fmt.Println("  go run . createPlaylist <usuarioID>")
+	fmt.Println("  go run . addMusicaToPlaylist <musicaID> <playlistID> <usuarioID>")
+	fmt.Println("  go run . listarRockDoPablo")
+	fmt.Println("  go run . listarDonoBohemianRhapsody")
+	fmt.Println("  go run . getRankingPopularidadeArtista")
+	fmt.Println("  go run . help")
 }
 
 func printResultado(nome string, err error) {
@@ -204,6 +246,75 @@ func imprimirUsuarios(usuarios []schemas.Usuario) {
 	}
 }
 
+func imprimirMusicasDaPlaylist(nomePlaylist string, musicas []services.MusicaNaPlaylist) {
+	if len(musicas) == 0 {
+		fmt.Printf("Nenhuma musica encontrada na playlist %q.\n", nomePlaylist)
+		return
+	}
+
+	fmt.Printf("Musicas na playlist %q:\n", nomePlaylist)
+	for _, musica := range musicas {
+		fmt.Printf("- Ordem=%d | Titulo=%s\n", musica.OrdemNaPlaylist, musica.Titulo)
+	}
+}
+
+func executarListarMusicasRockDoPablo() error {
+	musicas, err := services.GetMusicasDaPlaylist("Rock do Pablo")
+	printResultado("GetMusicasDaPlaylist", err)
+	if err != nil {
+		return err
+	}
+
+	imprimirMusicasDaPlaylist("Rock do Pablo", musicas)
+	return nil
+}
+
+func executarListarDonoDaMusica(tituloMusica string) error {
+	usuarios, err := services.GetUsuariosDonoDaMusica(tituloMusica)
+	printResultado("GetUsuariosDonoDaMusica", err)
+	if err != nil {
+		return err
+	}
+
+	if len(usuarios) == 0 {
+		fmt.Printf("Nenhum usuario encontrado para a musica %q.\n", tituloMusica)
+		return nil
+	}
+
+	fmt.Printf("Usuarios donos da playlist que contem %q:\n", tituloMusica)
+	for _, username := range usuarios {
+		fmt.Printf("- Username=%s\n", username)
+	}
+
+	return nil
+}
+
+func GetRankingPopularidadeArtista() error {
+	ranking, err := services.GetRankingPopularidadeArtista()
+	printResultado("GetRankingPopularidadeArtista", err)
+	if err != nil {
+		return err
+	}
+
+	if len(ranking) == 0 {
+		fmt.Println("Nenhum artista encontrado.")
+		return nil
+	}
+
+	fmt.Println("Ranking de popularidade dos artistas:")
+	for _, item := range ranking {
+		fmt.Printf(
+			"%dº - ArtistaID=%d | Nome=%s | Playlists=%d\n",
+			item.Posicao,
+			item.ArtistaID,
+			item.Nome,
+			item.QuantidadePlaylists,
+		)
+	}
+
+	return nil
+}
+
 func resetDB(db *gorm.DB) error {
 	fmt.Println("=== RESET DB: Dropping tables and reapplying migrations ===")
 
@@ -235,6 +346,39 @@ func resetDB(db *gorm.DB) error {
 	}
 
 	return applyManualConstraints(db)
+}
+
+func executarDemoCompleta(db *gorm.DB, sufixo string) error {
+	if err := resetDB(db); err != nil {
+		return err
+	}
+
+	seed.Seed(db)
+	fmt.Println("Seed concluído")
+
+	if err := executarSmokeTest(db, sufixo); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func executarSmokeTest(db *gorm.DB, sufixo string) error {
+	fmt.Println("=== SMOKE TEST ===")
+
+	if err := executarTesteArtista(sufixo); err != nil {
+		return err
+	}
+
+	if err := executarTesteMusica(sufixo); err != nil {
+		return err
+	}
+
+	if err := executarTestePlaylist(sufixo); err != nil {
+		return err
+	}
+
+	return executarTesteDelete(db, sufixo)
 }
 
 func applyManualConstraints(db *gorm.DB) error {
@@ -547,7 +691,7 @@ func executarTesteArtista(sufixo string) error {
 	if err != nil {
 		return err
 	}
-	//imprimirArtistas(artistas)
+	imprimirArtistas(artistas)
 
 	var artistaID uint
 	for _, artista := range artistas {
@@ -578,7 +722,7 @@ func executarTesteArtista(sufixo string) error {
 	}
 	fmt.Printf("Artista atualizado: ID=%d Nome=%s\n", artistaAtualizado.ID, artistaAtualizado.Nome)
 
-	err = services.DeleteArtista(artistaID)
+	//err = services.DeleteArtista(artistaID)
 	printResultado("DeleteArtista", err)
 	return err
 }
