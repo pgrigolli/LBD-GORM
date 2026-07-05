@@ -1,7 +1,6 @@
 package services
 
 import (
-	"LBD/database"
 	"LBD/schemas"
 	"context"
 
@@ -9,7 +8,7 @@ import (
 )
 
 func GetAllUsuario() ([]schemas.Usuario, error) {
-	db, err := database.ConnectDB()
+	db, err := connectDB()
 
 	if err != nil {
 		return nil, err

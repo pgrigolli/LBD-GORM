@@ -2,13 +2,15 @@ package schemas
 
 import (
 	"database/sql"
-
-	"gorm.io/gorm"
 )
 
 type Artista struct {
-	gorm.Model
-	Nome          string `gorm:"unique"`
-	Nacionalidade sql.NullString
-	Musicas       []Musica `gorm:"foreignKey:Artista_id;constraint:OnDelete:CASCADE"`
+	ID            uint           `gorm:"column:id;primaryKey;autoIncrement"`
+	Nome          string         `gorm:"column:nome;unique;not null"`
+	Nacionalidade sql.NullString `gorm:"column:nacionalidade"`
+	Musicas       []Musica       `gorm:"foreignKey:Artista_id;references:ID;constraint:OnDelete:CASCADE"`
+}
+
+func (Artista) TableName() string {
+	return "ARTISTA"
 }

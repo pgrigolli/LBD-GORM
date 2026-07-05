@@ -1,10 +1,12 @@
 package schemas
 
-import "gorm.io/gorm"
-
 type Usuario struct {
-	gorm.Model
-	Username  string
-	Email     string
-	Playlists []Playlist `gorm:"foreignKey:UsuarioId;constraint:OnDelete:CASCADE"`
+	ID        uint       `gorm:"column:id;primaryKey;autoIncrement"`
+	Username  string     `gorm:"column:username;unique;not null"`
+	Email     string     `gorm:"column:email;unique;not null"`
+	Playlists []Playlist `gorm:"foreignKey:UsuarioId;references:ID;constraint:OnDelete:CASCADE"`
+}
+
+func (Usuario) TableName() string {
+	return "USUARIO"
 }

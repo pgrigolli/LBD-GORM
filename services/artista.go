@@ -1,7 +1,6 @@
 package services
 
 import (
-	"LBD/database"
 	"LBD/schemas"
 	"context"
 	"fmt"
@@ -11,7 +10,7 @@ import (
 
 func CreateArtista(artista schemas.Artista) error {
 
-	db, err := database.ConnectDB()
+	db, err := connectDB()
 
 	if err != nil {
 		return err
@@ -25,7 +24,7 @@ func CreateArtista(artista schemas.Artista) error {
 
 func GetArtista(id uint) (schemas.Artista, error) {
 
-	db, err := database.ConnectDB()
+	db, err := connectDB()
 
 	if err != nil {
 		return schemas.Artista{}, err
@@ -39,7 +38,7 @@ func GetArtista(id uint) (schemas.Artista, error) {
 
 func GetAllArtista() ([]schemas.Artista, error) {
 
-	db, err := database.ConnectDB()
+	db, err := connectDB()
 
 	if err != nil {
 		return nil, err
@@ -53,7 +52,7 @@ func GetAllArtista() ([]schemas.Artista, error) {
 }
 
 func UpdateArtista(artista schemas.Artista) (schemas.Artista, error) {
-	db, err := database.ConnectDB()
+	db, err := connectDB()
 
 	if err != nil {
 		return schemas.Artista{}, err
@@ -76,7 +75,7 @@ func UpdateArtista(artista schemas.Artista) (schemas.Artista, error) {
 
 func DeleteArtista(artistaID uint) error {
 
-	db, err := database.ConnectDB()
+	db, err := connectDB()
 
 	if err != nil {
 		return err

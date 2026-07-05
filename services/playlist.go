@@ -1,7 +1,6 @@
 package services
 
 import (
-	"LBD/database"
 	"LBD/schemas"
 	"context"
 	"fmt"
@@ -11,7 +10,7 @@ import (
 
 func CreatePlaylist(playlist schemas.Playlist) (schemas.Playlist, error) {
 
-	db, err := database.ConnectDB()
+	db, err := connectDB()
 
 	if err != nil {
 		return schemas.Playlist{}, err
@@ -24,7 +23,7 @@ func CreatePlaylist(playlist schemas.Playlist) (schemas.Playlist, error) {
 }
 
 func GetAllPlaylist() ([]schemas.Playlist, error) {
-	db, err := database.ConnectDB()
+	db, err := connectDB()
 
 	if err != nil {
 		return nil, err
@@ -36,7 +35,7 @@ func GetAllPlaylist() ([]schemas.Playlist, error) {
 
 func AddMusicaToPlaylist(musicaId, playlistId, usuarioId uint) error {
 
-	db, err := database.ConnectDB()
+	db, err := connectDB()
 
 	if err != nil {
 		return err
@@ -64,7 +63,7 @@ func AddMusicaToPlaylist(musicaId, playlistId, usuarioId uint) error {
 
 func RemoveMusicaFromPlaylist(musicaId, playlistId, usuarioId uint) error {
 
-	db, err := database.ConnectDB()
+	db, err := connectDB()
 
 	if err != nil {
 		return err

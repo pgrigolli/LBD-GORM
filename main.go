@@ -31,6 +31,10 @@ func main() {
 		panic(err)
 	}
 
+	if err := applyManualConstraints(db); err != nil {
+		panic(err)
+	}
+
 	modo := "all"
 	if len(os.Args) > 1 {
 		modo = os.Args[1]
@@ -203,18 +207,23 @@ func imprimirUsuarios(usuarios []schemas.Usuario) {
 func resetDB(db *gorm.DB) error {
 	fmt.Println("=== RESET DB: Dropping tables and reapplying migrations ===")
 
-	// Drop tables in order to avoid FK issues
-	if err := db.Migrator().DropTable(
-		&schemas.MusicaPlaylist{},
-		&schemas.Playlist{},
-		&schemas.Musica{},
-		&schemas.Artista{},
-		&schemas.Usuario{},
-	); err != nil {
-		return err
+	for _, query := range []string{
+		`DROP TABLE IF EXISTS "MUSICA_PLAYLIST" CASCADE`,
+		`DROP TABLE IF EXISTS "PLAYLIST" CASCADE`,
+		`DROP TABLE IF EXISTS "MUSICA" CASCADE`,
+		`DROP TABLE IF EXISTS "ARTISTA" CASCADE`,
+		`DROP TABLE IF EXISTS "USUARIO" CASCADE`,
+		`DROP TABLE IF EXISTS "musica_playlists" CASCADE`,
+		`DROP TABLE IF EXISTS "playlists" CASCADE`,
+		`DROP TABLE IF EXISTS "musicas" CASCADE`,
+		`DROP TABLE IF EXISTS "artistas" CASCADE`,
+		`DROP TABLE IF EXISTS "usuarios" CASCADE`,
+	} {
+		if err := db.Exec(query).Error; err != nil {
+			return err
+		}
 	}
 
-	// Recreate tables according to current models
 	if err := db.AutoMigrate(
 		&schemas.Artista{},
 		&schemas.Usuario{},
@@ -223,6 +232,21 @@ func resetDB(db *gorm.DB) error {
 		&schemas.MusicaPlaylist{},
 	); err != nil {
 		return err
+	}
+
+	return applyManualConstraints(db)
+}
+
+func applyManualConstraints(db *gorm.DB) error {
+	queries := []string{
+		`ALTER TABLE "MUSICA_PLAYLIST" DROP CONSTRAINT IF EXISTS "fk_playlist_composta"`,
+		`ALTER TABLE "MUSICA_PLAYLIST" ADD CONSTRAINT "fk_playlist_composta" FOREIGN KEY (playlist_id, usuario_id) REFERENCES "PLAYLIST" (playlist_id, usuario_id) ON DELETE CASCADE`,
+	}
+
+	for _, query := range queries {
+		if err := db.Exec(query).Error; err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -283,8 +307,8 @@ func executarUpdateArtista(args []string, sufixo string) error {
 	}
 
 	artistaAtualizado, err := services.UpdateArtista(schemas.Artista{
-		Model: gorm.Model{ID: artistaID},
-		Nome:  "Artista Atualizado " + sufixo,
+		ID:   artistaID,
+		Nome: "Artista Atualizado " + sufixo,
 		Nacionalidade: sql.NullString{
 			String: "Portuguesa",
 			Valid:  true,
@@ -391,7 +415,7 @@ func executarUpdateMusica(args []string, sufixo string) error {
 	}
 
 	musicaAtualizada, err := services.UpdateMusica(schemas.Musica{
-		Model:            gorm.Model{ID: musicaID},
+		ID:               musicaID,
 		Titulo:           "Musica Atualizada " + sufixo,
 		Duracao_segundos: 240,
 		Artista_id:       artistaID,
@@ -541,8 +565,8 @@ func executarTesteArtista(sufixo string) error {
 	fmt.Printf("Artista encontrado: ID=%d Nome=%s\n", artista.ID, artista.Nome)
 
 	artistaAtualizado, err := services.UpdateArtista(schemas.Artista{
-		Model: gorm.Model{ID: artistaID},
-		Nome:  nomeArtista + " Atualizado",
+		ID:   artistaID,
+		Nome: nomeArtista + " Atualizado",
 		Nacionalidade: sql.NullString{
 			String: "Portuguesa",
 			Valid:  true,
@@ -605,7 +629,7 @@ func executarTesteMusica(sufixo string) error {
 	fmt.Printf("Musica encontrada: ID=%d Titulo=%s\n", musica.ID, musica.Titulo)
 
 	musicaAtualizada, err := services.UpdateMusica(schemas.Musica{
-		Model:            gorm.Model{ID: musicaID},
+		ID:               musicaID,
 		Titulo:           tituloMusica + " Atualizada",
 		Duracao_segundos: 240,
 		Artista_id:       artistaID,

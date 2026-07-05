@@ -1,7 +1,6 @@
 package services
 
 import (
-	"LBD/database"
 	"LBD/schemas"
 	"context"
 	"fmt"
@@ -11,7 +10,7 @@ import (
 
 func CreateMusica(musica schemas.Musica) error {
 
-	db, err := database.ConnectDB()
+	db, err := connectDB()
 
 	if err != nil {
 		return err
@@ -23,7 +22,7 @@ func CreateMusica(musica schemas.Musica) error {
 
 func GetMusica(id uint) (schemas.Musica, error) {
 
-	db, err := database.ConnectDB()
+	db, err := connectDB()
 
 	if err != nil {
 		return schemas.Musica{}, err
@@ -35,7 +34,7 @@ func GetMusica(id uint) (schemas.Musica, error) {
 
 func GetAllMusica() ([]schemas.Musica, error) {
 
-	db, err := database.ConnectDB()
+	db, err := connectDB()
 
 	if err != nil {
 		return nil, err
@@ -47,7 +46,7 @@ func GetAllMusica() ([]schemas.Musica, error) {
 
 func UpdateMusica(musica schemas.Musica) (schemas.Musica, error) {
 
-	db, err := database.ConnectDB()
+	db, err := connectDB()
 
 	if err != nil {
 		return schemas.Musica{}, err
@@ -69,7 +68,7 @@ func UpdateMusica(musica schemas.Musica) (schemas.Musica, error) {
 
 func DeleteMusica(id uint) error {
 
-	db, err := database.ConnectDB()
+	db, err := connectDB()
 
 	if err != nil {
 		return err
