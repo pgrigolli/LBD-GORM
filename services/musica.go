@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func CreateMusica(musica schemas.Musica) error {
@@ -112,4 +113,76 @@ func DeleteMusica(id uint) error {
 	}
 
 	return nil
+}
+
+func GetMusicasByUsuarioAndArtista(username, nomeArtista string) ([]schemas.Musica, error) {
+	db, err := connectDB()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+
+	usuario, err := gorm.G[schemas.Usuario](db.Debug()).Where("username = ?", username).First(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("usuario '%s' nao encontrado: %w", username, err)
+	}
+
+	artista, err := gorm.G[schemas.Artista](db.Debug()).Where("nome = ?", nomeArtista).First(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("artista '%s' nao encontrado: %w", nomeArtista, err)
+	}
+
+	var musicas []schemas.Musica
+	err = db.Debug().
+		Table(`"MUSICA" m`).
+		Select("DISTINCT m.*").
+		Joins(`INNER JOIN "MUSICA_PLAYLIST" mp ON mp.musica_id = m.id`).
+		Joins(`INNER JOIN "PLAYLIST" p ON p.playlist_id = mp.playlist_id AND p.usuario_id = mp.usuario_id`).
+		Where("m.artista_id = ?", artista.ID).
+		Where("p.usuario_id = ?", usuario.ID).
+		Scan(&musicas).Error
+
+	return musicas, err
+}
+
+func GetMusicaComArtista(id uint) (schemas.Musica, error) {
+	db, err := connectDB()
+	if err != nil {
+		return schemas.Musica{}, err
+	}
+
+	ctx := context.Background()
+	musica, err := gorm.G[schemas.Musica](db.Debug()).
+		Joins(clause.Has("Artista"), nil).
+		Where(`"MUSICA"."id" = ?`, id).
+		First(ctx)
+	if err != nil {
+		return schemas.Musica{}, fmt.Errorf("musica com id %d nao encontrada: %w", id, err)
+	}
+
+	return musica, nil
+}
+
+func GetMusicasMaisCurtasQueMediaDoArtista() ([]schemas.Musica, error) {
+	db, err := connectDB()
+	if err != nil {
+		return nil, err
+	}
+
+	musicasComMediaDoArtista := db.
+		Table(`"MUSICA" m`).
+		Select("m.*, AVG(m.duracao_segundos) OVER (PARTITION BY m.artista_id) AS media_duracao_artista")
+		// PARTITION BY cria uma "partição" para cada artista,
+		// calculando a média da duração das músicas dentro de cada partição.
+	var musicas []schemas.Musica
+	err = db.Debug().
+		Table("(?) AS sub", musicasComMediaDoArtista).
+		Select("sub.*").
+		Where("sub.duracao_segundos < sub.media_duracao_artista").
+		Order("sub.artista_id ASC").
+		Order("sub.duracao_segundos ASC").
+		Scan(&musicas).Error
+
+	return musicas, err
 }

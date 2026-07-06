@@ -233,3 +233,70 @@ func GetUsuariosDonoDaMusica(tituloMusica string) ([]string, error) {
 	sort.Strings(resultado)
 	return resultado, nil
 }
+
+func GetPlaylistsByUser(username string) ([]schemas.Playlist, error) {
+	db, err := connectDB()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+
+	usuario, err := gorm.G[schemas.Usuario](db.Debug()).Where("username = ?", username).First(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("usuario '%s' nao encontrado: %w", username, err)
+	}
+
+	return gorm.G[schemas.Playlist](db.Debug()).Where("usuario_id = ?", usuario.ID).Find(ctx)
+}
+
+type PlaylistQuantidadeMusicas struct {
+	Nome              string `gorm:"column:nome"`
+	QuantidadeMusicas int64  `gorm:"column:quantidade_musicas"`
+}
+
+func GetQuantidadeMusicasPorPlaylist() ([]PlaylistQuantidadeMusicas, error) {
+	db, err := connectDB()
+	if err != nil {
+		return nil, err
+	}
+
+	var resultado []PlaylistQuantidadeMusicas
+	err = db.Debug().
+		Table(`"PLAYLIST" p`).
+		Select("p.nome, COUNT(mp.musica_id) AS quantidade_musicas").
+		Joins(`LEFT JOIN "MUSICA_PLAYLIST" mp ON mp.playlist_id = p.playlist_id AND mp.usuario_id = p.usuario_id`).
+		Group("p.playlist_id, p.usuario_id, p.nome").
+		Order("quantidade_musicas DESC").
+		Order("p.nome ASC").
+		Scan(&resultado).Error
+
+	return resultado, err
+}
+
+type PlaylistTempoTotal struct {
+	NomePlaylist       string `gorm:"column:nome_playlist"`
+	UsernameDono       string `gorm:"column:username_dono"`
+	TempoTotalSegundos int64  `gorm:"column:tempo_total_segundos"`
+}
+
+func GetTempoTotalPorPlaylist() ([]PlaylistTempoTotal, error) {
+	db, err := connectDB()
+	if err != nil {
+		return nil, err
+	}
+
+	var resultado []PlaylistTempoTotal
+	err = db.Debug().
+		Table(`"PLAYLIST" p`).
+		Select("p.nome AS nome_playlist, u.username AS username_dono, COALESCE(SUM(m.duracao_segundos), 0) AS tempo_total_segundos").
+		Joins(`INNER JOIN "USUARIO" u ON u.id = p.usuario_id`).
+		Joins(`LEFT JOIN "MUSICA_PLAYLIST" mp ON mp.playlist_id = p.playlist_id AND mp.usuario_id = p.usuario_id`).
+		Joins(`LEFT JOIN "MUSICA" m ON m.id = mp.musica_id`).
+		Group("p.playlist_id, p.usuario_id, p.nome, u.username").
+		Order("tempo_total_segundos DESC").
+		Order("p.nome ASC").
+		Scan(&resultado).Error
+
+	return resultado, err
+}

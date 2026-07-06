@@ -111,6 +111,28 @@ func UpdateArtista(artista schemas.Artista) (schemas.Artista, error) {
 
 }
 
+func GetArtistasSemMusicasEmPlaylist() ([]schemas.Artista, error) {
+	db, err := connectDB()
+	if err != nil {
+		return nil, err
+	}
+
+	artistasComMusicaEmPlaylist := db.
+		Table(`"MUSICA" m`).
+		Select("DISTINCT m.artista_id").
+		Joins(`INNER JOIN "MUSICA_PLAYLIST" mp ON mp.musica_id = m.id`)
+
+	var artistas []schemas.Artista
+	err = db.Debug().
+		Table(`"ARTISTA" a`).
+		Select("a.*").
+		Where("a.id NOT IN (?)", artistasComMusicaEmPlaylist). //Subquery
+		Order("a.nome ASC").
+		Scan(&artistas).Error
+
+	return artistas, err
+}
+
 func DeleteArtista(artistaID uint) error {
 
 	db, err := connectDB()

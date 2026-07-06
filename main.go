@@ -143,6 +143,30 @@ func main() {
 		if err := GetRankingPopularidadeArtista(); err != nil {
 			panic(err)
 		}
+	case "getMusicasByUsuarioAndArtista":
+		if err := executarGetMusicasByUsuarioAndArtista(args); err != nil {
+			panic(err)
+		}
+	case "getQuantidadeMusicasPorPlaylist":
+		if err := executarGetQuantidadeMusicasPorPlaylist(); err != nil {
+			panic(err)
+		}
+	case "getArtistasSemMusicasEmPlaylist":
+		if err := executarGetArtistasSemMusicasEmPlaylist(); err != nil {
+			panic(err)
+		}
+	case "getMusicaComArtista":
+		if err := executarGetMusicaComArtista(args); err != nil {
+			panic(err)
+		}
+	case "getTempoTotalPorPlaylist":
+		if err := executarGetTempoTotalPorPlaylist(); err != nil {
+			panic(err)
+		}
+	case "getMusicasMaisCurtasQueMediaDoArtista":
+		if err := executarGetMusicasMaisCurtasQueMediaDoArtista(); err != nil {
+			panic(err)
+		}
 	case "getAllUsuario":
 		if err := executarGetAllUsuario(); err != nil {
 			panic(err)
@@ -197,6 +221,12 @@ func printUso() {
 	fmt.Println("  go run . listarDonoBohemianRhapsody")
 	fmt.Println("  go run . getMusicasLedZeppelinMaioresQueQueen")
 	fmt.Println("  go run . getRankingPopularidadeArtista")
+	fmt.Println("  go run . getMusicasByUsuarioAndArtista <username> <nomeArtista>")
+	fmt.Println("  go run . getQuantidadeMusicasPorPlaylist")
+	fmt.Println("  go run . getArtistasSemMusicasEmPlaylist")
+	fmt.Println("  go run . getMusicaComArtista <musicaID>")
+	fmt.Println("  go run . getTempoTotalPorPlaylist")
+	fmt.Println("  go run . getMusicasMaisCurtasQueMediaDoArtista")
 	fmt.Println("  go run . help")
 }
 
@@ -343,6 +373,100 @@ func GetRankingPopularidadeArtista() error {
 		)
 	}
 
+	return nil
+}
+
+func executarGetMusicasByUsuarioAndArtista(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("uso: getMusicasByUsuarioAndArtista <username> <nomeArtista>")
+	}
+
+	musicas, err := services.GetMusicasByUsuarioAndArtista(args[0], args[1])
+	printResultado("GetMusicasByUsuarioAndArtista", err)
+	if err != nil {
+		return err
+	}
+
+	imprimirMusicas(musicas)
+	return nil
+}
+
+func executarGetQuantidadeMusicasPorPlaylist() error {
+	resultado, err := services.GetQuantidadeMusicasPorPlaylist()
+	printResultado("GetQuantidadeMusicasPorPlaylist", err)
+	if err != nil {
+		return err
+	}
+
+	if len(resultado) == 0 {
+		fmt.Println("Nenhuma playlist encontrada.")
+		return nil
+	}
+
+	fmt.Println("Quantidade de musicas por playlist:")
+	for _, item := range resultado {
+		fmt.Printf("- Playlist=%s | QuantidadeMusicas=%d\n", item.Nome, item.QuantidadeMusicas)
+	}
+	return nil
+}
+
+func executarGetArtistasSemMusicasEmPlaylist() error {
+	artistas, err := services.GetArtistasSemMusicasEmPlaylist()
+	printResultado("GetArtistasSemMusicasEmPlaylist", err)
+	if err != nil {
+		return err
+	}
+
+	imprimirArtistas(artistas)
+	return nil
+}
+
+func executarGetMusicaComArtista(args []string) error {
+	musicaID, err := parseUintArg(args, 0, "musicaID")
+	if err != nil {
+		return err
+	}
+
+	musica, err := services.GetMusicaComArtista(musicaID)
+	printResultado("GetMusicaComArtista", err)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf(
+		"Musica: ID=%d Titulo=%s Duracao=%d | Artista: ID=%d Nome=%s\n",
+		musica.ID, musica.Titulo, musica.Duracao_segundos, musica.Artista.ID, musica.Artista.Nome,
+	)
+	return nil
+}
+
+func executarGetTempoTotalPorPlaylist() error {
+	resultado, err := services.GetTempoTotalPorPlaylist()
+	printResultado("GetTempoTotalPorPlaylist", err)
+	if err != nil {
+		return err
+	}
+
+	if len(resultado) == 0 {
+		fmt.Println("Nenhuma playlist encontrada.")
+		return nil
+	}
+
+	fmt.Println("Tempo total de reproducao por playlist:")
+	for _, item := range resultado {
+		fmt.Printf("- Playlist=%s | Dono=%s | TempoTotalSegundos=%d\n", item.NomePlaylist, item.UsernameDono, item.TempoTotalSegundos)
+	}
+	return nil
+}
+
+func executarGetMusicasMaisCurtasQueMediaDoArtista() error {
+	musicas, err := services.GetMusicasMaisCurtasQueMediaDoArtista()
+	printResultado("GetMusicasMaisCurtasQueMediaDoArtista", err)
+	if err != nil {
+		return err
+	}
+
+	imprimirMusicas(musicas)
 	return nil
 }
 
