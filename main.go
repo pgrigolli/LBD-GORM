@@ -171,6 +171,10 @@ func main() {
 		if err := executarGetAllUsuario(); err != nil {
 			panic(err)
 		}
+	case "getPlaylistsByUser":
+		if err := executarGetPlaylistsByUser(args); err != nil {
+			panic(err)
+		}
 	case "artista":
 		if err := executarTesteArtista(sufixo); err != nil {
 			panic(err)
@@ -227,6 +231,7 @@ func printUso() {
 	fmt.Println("  go run . getMusicaComArtista <musicaID>")
 	fmt.Println("  go run . getTempoTotalPorPlaylist")
 	fmt.Println("  go run . getMusicasMaisCurtasQueMediaDoArtista")
+	fmt.Println("  go run . getPlaylistsByUser <username>")
 	fmt.Println("  go run . help")
 }
 
@@ -700,6 +705,21 @@ func executarGetAllUsuario() error {
 	}
 
 	imprimirUsuarios(usuarios)
+	return nil
+}
+
+func executarGetPlaylistsByUser(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("uso: getPlaylistsByUser <username>")
+	}
+
+	playlists, err := services.GetPlaylistsByUser(args[0])
+	printResultado("GetPlaylistsByUser", err)
+	if err != nil {
+		return err
+	}
+
+	imprimirPlaylists(playlists)
 	return nil
 }
 
